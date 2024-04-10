@@ -3,25 +3,53 @@ const con = require('../connections/mysql');
 // CRUD - CREATE
 
 const addCliente = (req, res) => {
-    
-    const { cpf, nome_cliente } = req.body;
-    if (cpf && nome_cliente) {
-        con.query('INSERT INTO cliente (cpf, nome_cliente) VALUES (?, ?)',
-            [cpf, nome_cliente],
-            (err, result) => {
-                if (err) {
-                    console.error('Erro ao adicionar funcionário:', err);
-                    res.status(500).json({ error: 'Erro ao adicionar funcionário' });
-                } else {
-                    const newEmployee = { cpf, nome_cliente };
-                    res.status(201).json(newEmployee);
+    const { cpf, nome_cliente, numero } = req.body;
+
+    if (cpf && nome_cliente && numero) {
+        con.beginTransaction((err) => {
+            if (err) {
+                console.error('Erro ao iniciar transação:', err);
+                res.status(500).json({ error: 'Erro ao iniciar transação' });
+                return;
+            }
+
+            con.query('INSERT INTO cliente (cpf, nome_cliente) VALUES (?, ?)', [cpf, nome_cliente], (errCliente, resultCliente) => {
+                if (errCliente) {
+                    console.error('Erro ao adicionar cliente:', errCliente);
+                    con.rollback(() => {
+                        res.status(500).json({ error: 'Erro ao adicionar cliente' });
+                    });
+                    return;
                 }
+
+                con.query('INSERT INTO telefone (cpf, numero) VALUES (?, ?)', [cpf, numero], (errTelefone, resultTelefone) => {
+                    if (errTelefone) {
+                        console.error('Erro ao adicionar telefone:', errTelefone);
+                        con.rollback(() => {
+                            res.status(500).json({ error: 'Erro ao adicionar telefone' });
+                        });
+                        return;
+                    }
+
+                    con.commit((errCommit) => {
+                        if (errCommit) {
+                            console.error('Erro ao comitar transação:', errCommit);
+                            con.rollback(() => {
+                                res.status(500).json({ error: 'Erro ao comitar transação' });
+                            });
+                        } else {
+                            const newEmployee = { cpf, nome_cliente, numero };
+                            res.status(201).json(newEmployee);
+                        }
+                    });
+                });
             });
+        });
     } else {
         res.status(400).json({ error: 'Favor enviar todos os campos obrigatórios' });
     }
-
 };
+
 
 // CRUD - READ
 
@@ -74,17 +102,14 @@ const deleteCliente = (req, res) => {
     const { cpf } = req.params;
     
     if (cpf) {
-        // Excluir todas as linhas na tabela telefone que têm uma referência para o CPF especificado
         con.query('DELETE FROM telefone WHERE cpf = ?', [cpf], (errTelefone, resultTelefone) => {
             if (errTelefone) {
                 res.status(500).json({ error: errTelefone });
             } else {
-                // Excluir todas as linhas na tabela aluguel que têm uma referência para o CPF especificado
                 con.query('DELETE FROM aluguel WHERE cpf = ?', [cpf], (errAluguel, resultAluguel) => {
                     if (errAluguel) {
                         res.status(500).json({ error: errAluguel });
                     } else {
-                        // Finalmente, excluir a linha na tabela cliente
                         con.query('DELETE FROM cliente WHERE cpf = ?', [cpf], (errCliente, resultCliente) => {
                             if (errCliente) {
                                 res.status(500).json({ error: errCliente });

@@ -30,6 +30,9 @@ router.delete('/veiculos/:placa', Veiculo.deleteVeiculo);
 
 router.post('/alugueis', Aluguel.addAluguel);
 router.get('/alugueis', Aluguel.getAlugueis);
+router.get('/alugueisreserva', Aluguel.getReservados);
+router.get('/alugueistodos', Aluguel.getTodosalugueis);
+router.get('/alugueisandamento', Aluguel.getAndamento);
 router.get('/alugueis/:id', Aluguel.getAluguel);
 router.put('/alugueis', Aluguel.updateAluguel);
 router.delete('/alugueis/:id', Aluguel.deleteAluguel);

@@ -3,10 +3,10 @@ const con = require('../connections/mysql');
 // CRUD - CREATE
 
 const addVeiculo = (req, res) => {
-    
     const { placa, modelo, marca, tipo, diaria } = req.body;
+    
     if (placa && modelo && marca && tipo && diaria) {
-        con.query('INSERT INTO veiculo (placa, modelo, marca, tipo ENUM, diaria) VALUES (?, ?, ?, ?, ?)',
+        con.query('INSERT INTO veiculo (placa, modelo, marca, tipo, diaria) VALUES (?, ?, ?, ?, ?)',
             [placa, modelo, marca, tipo, diaria],
             (err, result) => {
                 if (err) {
@@ -20,8 +20,8 @@ const addVeiculo = (req, res) => {
     } else {
         res.status(400).json({ error: 'Favor enviar todos os campos obrigatórios' });
     }
-
 };
+
 
 // CRUD - READ
 
@@ -49,46 +49,52 @@ const getVeiculo = (req, res) => {
 // CRUD - UPDATE
 
 const updateVeiculo = (req, res) => {
-
-    const { placa, modelo, marca, ano } = req.body;
-    if (placa && modelo && marca && ano) {
-        con.query('UPDATE veiculo SET modelo = ?, marca = ?, ano = ? WHERE placa = ?', 
-        [modelo, marca, ano, placa], 
-        (err, result) => {
-            if (err) {
-                res.status(500).json({ error: err });
-            } else {
-                res.status(200).json(req.body);
-            }
-        });
-    } else {
-        res.status(400).json({ error: 'Favor enviar todos os campos obrigatórios' });
-    }
-
-}
-
-// CRUD - DELETE
-
-const deleteVeiculo = (req, res) => {
+    const { placa, modelo, marca, tipo, diaria } = req.body;
     
-    const { placa } = req.params;
-    if (placa) {
-        con.query('DELETE FROM veiculo WHERE placa = ?', [placa], (err, result) => {
-            if (err) {
-                res.status(500).json({ error: err });
-            } else {
-                if (result.affectedRows === 0) {
-                    res.status(404).json({ error: 'Veículo não encontrado' });
+    if (placa && modelo && marca && tipo && diaria) {
+        con.query(
+            'UPDATE veiculo SET modelo = ?, marca = ?, tipo = ?, diaria = ? WHERE placa = ?', 
+            [modelo, marca, tipo, diaria, placa], 
+            (err, result) => {
+                if (err) {
+                    res.status(500).json({ error: err });
                 } else {
-                    res.status(200).json({ message: 'Veículo removido com sucesso' });
+                    res.status(200).json(req.body);
                 }
             }
+        );
+    } else {
+        res.status(400).json({ error: 'Favor enviar todos os campos obrigatórios' });
+    }
+}
+
+
+// CRUD - DELETE
+const deleteVeiculo = (req, res) => {
+    const { placa } = req.params;
+    if (placa) {
+        con.query('DELETE FROM aluguel WHERE placa = ?', [placa], (errAluguel, resultAluguel) => {
+            if (errAluguel) {
+                res.status(500).json({ error: errAluguel });
+            } else {
+                con.query('DELETE FROM veiculo WHERE placa = ?', [placa], (errVeiculo, resultVeiculo) => {
+                    if (errVeiculo) {
+                        res.status(500).json({ error: errVeiculo });
+                    } else {
+                        if (resultVeiculo.affectedRows === 0) {
+                            res.status(404).json({ error: 'Veículo não encontrado' });
+                        } else {
+                            res.status(200).json({ message: 'Veículo e aluguéis relacionados removidos com sucesso' });
+                        }
+                    }
+                });
+            }
         });
     } else {
         res.status(400).json({ error: 'Favor enviar todos os campos obrigatórios' });
     }
-    
 }
+
 
 module.exports = {
     addVeiculo,
